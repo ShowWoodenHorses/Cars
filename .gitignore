@@ -34,3 +34,6 @@ sysinfo.txt
 
 # VSCode
 .vscode/
+
+UserSettings/
+.vsconfig
