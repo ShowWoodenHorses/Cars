@@ -24,7 +24,7 @@
 *.sln.iml
 
 # Unity cache
-.obj/
+**/obj/
 *.pidb
 *.booproj
 *.svd
