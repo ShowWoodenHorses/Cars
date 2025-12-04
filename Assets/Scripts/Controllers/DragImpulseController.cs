@@ -7,8 +7,8 @@ namespace Assets.Scripts.Controllers
     {
         [Header("Impulse Settings")]
         public float maxPower = 10f;
-        public float minDistance = 10f;
-        public float maxDistance = 500f;
+        public float minDistance = 1f; // минимальная длина натяжения
+        public float maxDistance = 20f; // максимальная длина в мире
 
         [Header("References")]
         public Transform car;
@@ -40,47 +40,37 @@ namespace Assets.Scripts.Controllers
             currentPointerPos = pos;
 
             powerLine3D?.Begin(car.position);
-            trajectoryRenderer?.Hide();
+            trajectoryRenderer?.Hide(); // рикошеты скрыты до импульса
         }
 
         private void OnDrag(Vector2 pos)
         {
             if (!dragging) return;
-
             currentPointerPos = pos;
 
-            Vector2 deltaScreen = currentPointerPos - centerPointScreen;
-            if (deltaScreen.sqrMagnitude < 1f) return;
-
-            // --- направление движения машины (обратное пальцу) ---
-            Vector3 deltaWorld = new Vector3(deltaScreen.x, 0, deltaScreen.y);
-            deltaWorld = -cam.transform.TransformDirection(deltaWorld);
-            deltaWorld.y = 0;
-            deltaWorld.Normalize();
-
-            // --- Preview поворот машины ---
-            carController.PreviewRotation(deltaWorld);
-
-            // --- линия натяжения ---
-            // преобразуем позицию пальца в мировые координаты на плоскости машины
             Plane plane = new Plane(Vector3.up, car.position);
             Ray ray = cam.ScreenPointToRay(currentPointerPos);
-            if (plane.Raycast(ray, out float enter))
-            {
-                Vector3 pointerWorld = ray.GetPoint(enter);
-                Vector3 dirToPointer = pointerWorld - car.position;
-                float distance = dirToPointer.magnitude;
+            if (!plane.Raycast(ray, out float enter)) return;
 
-                // ограничиваем по maxDistance
-                float lineLength = Mathf.Min(distance, maxDistance);
+            Vector3 pointerWorld = ray.GetPoint(enter);
+            Vector3 dirToPointer = pointerWorld - car.position;
 
-                // линия тянется к пальцу
-                Vector3 lineEnd = car.position + dirToPointer.normalized * lineLength;
-                powerLine3D?.UpdateLine(car.position, lineEnd);
-            }
+            // направление движения машины (обратное пальцу)
+            Vector3 moveDir = -dirToPointer;
+            moveDir.y = 0;
+            moveDir.Normalize();
 
-            // --- рикошетная линия ---
-            trajectoryRenderer?.Draw(car.position, deltaWorld);
+            // Preview поворот машины
+            carController.PreviewRotation(moveDir);
+
+            // --- линия натяжения ---
+            float distance = dirToPointer.magnitude;
+            float lineLength = Mathf.Min(distance, maxDistance);
+            Vector3 lineEnd = car.position + dirToPointer.normalized * lineLength;
+            powerLine3D?.UpdateLine(car.position, lineEnd);
+
+            // --- рикошетная линия для Preview (опционально) ---
+             trajectoryRenderer?.Draw(car.position, moveDir);
         }
 
         private void OnUp(Vector2 pos)
@@ -90,7 +80,10 @@ namespace Assets.Scripts.Controllers
             dragging = false;
             currentPointerPos = pos;
 
+            // Завершение линии натяжения
             powerLine3D?.End();
+
+            // Скрываем рикошеты после импульса
             trajectoryRenderer?.Hide();
 
             SendImpulse();
@@ -98,20 +91,24 @@ namespace Assets.Scripts.Controllers
 
         private void SendImpulse()
         {
-            Vector2 delta = currentPointerPos - centerPointScreen;
-            float distance = delta.magnitude;
-            if (distance < minDistance)
-                return;
+            Plane plane = new Plane(Vector3.up, car.position);
+            Ray ray = cam.ScreenPointToRay(currentPointerPos);
+            if (!plane.Raycast(ray, out float enter)) return;
 
-            float power = Mathf.InverseLerp(minDistance, maxDistance, distance); // 0..1
+            Vector3 pointerWorld = ray.GetPoint(enter);
+            Vector3 dirToPointer = pointerWorld - car.position;
 
-            Vector3 dir = new Vector3(delta.x, 0, delta.y).normalized;
-            dir = cam.transform.TransformDirection(dir);
-            dir.y = 0;
-            dir.Normalize();
-            dir = -dir;
+            float distance = dirToPointer.magnitude;
+            if (distance < minDistance) return;
 
-            carController.OnImpulse(dir * power);
+            // сила пропорциональна длине натяжения (0..maxPower)
+            float power = Mathf.Lerp(0f, maxPower, Mathf.InverseLerp(minDistance, maxDistance, distance));
+
+            Vector3 moveDir = -dirToPointer;
+            moveDir.y = 0;
+            moveDir.Normalize();
+
+            carController.OnImpulse(moveDir * power);
         }
     }
 }
