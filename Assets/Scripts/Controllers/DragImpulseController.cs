@@ -1,90 +1,105 @@
-﻿using UnityEngine;
-using UnityEngine.InputSystem;
+﻿using Assets.Scripts.Controllers.UI;
+using UnityEngine;
 
 namespace Assets.Scripts.Controllers
 {
     public class DragImpulseController : MonoBehaviour
     {
-        [Header("Line")]
-        public LineRenderer line;
-        public float lineFadeDuration = 0.2f;
-
-        [Header("Power")]
+        [Header("Impulse Settings")]
         public float maxPower = 10f;
+        public float minDistance = 10f;
+        public float maxDistance = 500f;
 
-        public System.Action<Vector3> onImpulse;
+        [Header("References")]
+        public Transform car;
+        public CarController carController;
+        public Camera cam;
+        public DragInput dragInput;
 
-        private bool isDragging;
-        private Vector2 centerScreen;
+        [Header("Trajectory & Power Line")]
+        public ReflectTrajectoryRenderer trajectoryRenderer; // рикошеты
+        public PowerLine3D powerLine3D;                      // натяжение
+
+        private Vector2 centerPointScreen;
         private Vector2 currentPointerPos;
+        private bool dragging;
 
-        private void Start()
+        private void Awake()
         {
-            centerScreen = new Vector2(Screen.width / 2f, Screen.height / 2f);
-
-            if (line != null)
-            {
-                line.positionCount = 2;
-                line.enabled = false;
-            }
+            dragInput.onDown += OnDown;
+            dragInput.onDrag += OnDrag;
+            dragInput.onUp += OnUp;
         }
 
-        private void Update()
+        private void OnDown(Vector2 pos)
         {
-            var touch = Touchscreen.current?.primaryTouch;
+            if (car == null) return;
 
-            if (touch != null && touch.press.isPressed)
-            {
-                Vector2 pos = touch.position.ReadValue();
+            dragging = true;
+            centerPointScreen = cam.WorldToScreenPoint(car.position);
+            currentPointerPos = pos;
 
-                if (!isDragging)
-                {
-                    isDragging = true;
-                    line.enabled = true;
-                    //line.material.DOFade(1f, 0.1f);
-                }
-
-                currentPointerPos = pos;
-
-                DrawLine();
-            }
-            else if (isDragging)
-            {
-                isDragging = false;
-                //line.material.DOFade(0f, lineFadeDuration).OnComplete(() => line.enabled = false);
-
-                SendImpulseToCar();
-            }
+            powerLine3D?.Begin(car.position);
+            trajectoryRenderer?.Hide();
         }
 
-        private void DrawLine()
+        private void OnDrag(Vector2 pos)
         {
-            Vector3 worldStart = ScreenToWorld(centerScreen);
-            Vector3 worldEnd = ScreenToWorld(currentPointerPos);
+            if (!dragging) return;
 
-            line.SetPosition(0, worldStart);
-            line.SetPosition(1, worldEnd);
+            currentPointerPos = pos;
+
+            Vector2 deltaScreen = currentPointerPos - centerPointScreen;
+
+            // направление в мире
+            Vector3 deltaWorld = new Vector3(deltaScreen.x, 0, deltaScreen.y);
+            deltaWorld = cam.transform.TransformDirection(deltaWorld);
+            deltaWorld.y = 0;
+            deltaWorld.Normalize();
+            deltaWorld = -deltaWorld;
+
+            // Preview вращение машины
+            if (deltaScreen.sqrMagnitude > 10f)
+                carController.PreviewRotation(deltaWorld);
+
+            // Draw натяжение через LineRenderer
+            float t = Mathf.InverseLerp(minDistance, maxDistance, deltaScreen.magnitude);
+            Vector3 lineEnd = car.position + deltaWorld * (t * maxDistance);
+            powerLine3D?.UpdateLine(car.position, -lineEnd);
+
+            // Рикошетная траектория (можно опционально)
+            trajectoryRenderer?.Draw(car.position, deltaWorld);
         }
 
-        private Vector3 ScreenToWorld(Vector2 screenPos)
+        private void OnUp(Vector2 pos)
         {
-            // расстояние до поверхности, на которой стоит машина
-            float distance = 10f;
-            return Camera.main.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, distance));
+            if (!dragging) return;
+
+            dragging = false;
+            currentPointerPos = pos;
+
+            powerLine3D?.End();
+            trajectoryRenderer?.Hide();
+
+            SendImpulse();
         }
 
-        private void SendImpulseToCar()
+        private void SendImpulse()
         {
-            Vector2 swipe = currentPointerPos - centerScreen;
-            swipe = Vector2.ClampMagnitude(swipe, maxPower);
+            Vector2 delta = currentPointerPos - centerPointScreen;
+            float distance = delta.magnitude;
+            if (distance < minDistance)
+                return;
 
-            // переводим направление в 3D вектор
-            Vector3 worldCenter = ScreenToWorld(centerScreen);
-            Vector3 worldTouch = ScreenToWorld(centerScreen + swipe);
+            float power = Mathf.InverseLerp(minDistance, maxDistance, distance); // 0..1
 
-            Vector3 direction = (worldTouch - worldCenter).normalized;
+            Vector3 dir = new Vector3(delta.x, 0, delta.y).normalized;
+            dir = cam.transform.TransformDirection(dir);
+            dir.y = 0;
+            dir.Normalize();
+            dir = -dir;
 
-            onImpulse?.Invoke(direction * swipe.magnitude);
+            carController.OnImpulse(dir * power);
         }
     }
 }

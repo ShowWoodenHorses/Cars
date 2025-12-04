@@ -1,9 +1,10 @@
 ﻿using UnityEngine;
 using Assets.Scripts.Controllers;
+using Assets.Scripts.Intrerface;
 
 namespace Assets.Scripts.Obstacles
 {
-    public class BounceSurface : MonoBehaviour
+    public class BounceSurface : MonoBehaviour, IReflectable
     {
         public float rotateDuration = 0.2f;
 
