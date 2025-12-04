@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 6839ee16887fa4146bd8ddb2361cc870, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -395,7 +395,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0.2979273, y: -0, z: -0, w: 0.9545886}
-  m_LocalPosition: {x: 0, y: 26.02, z: -36.55}
+  m_LocalPosition: {x: 0, y: 50, z: -40}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -496,6 +496,7 @@ Transform:
   - {fileID: 6622479082718068383}
   - {fileID: 1524421454}
   - {fileID: 1055525563}
+  - {fileID: 811339060}
   m_Father: {fileID: 744190908}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &376792825
@@ -961,7 +962,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 894542166}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 376792823}
   m_LocalEulerAnglesHint: {x: 90, y: 90, z: 0}
 --- !u!114 &811339061
 MonoBehaviour:
@@ -1045,6 +1046,15 @@ LineRenderer:
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
@@ -1385,6 +1395,15 @@ LineRenderer:
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
@@ -1623,7 +1642,7 @@ MonoBehaviour:
   cam: {fileID: 330585545}
   dragInput: {fileID: 445007986}
   trajectoryRenderer: {fileID: 1055525564}
-  powerLine3D: {fileID: 0}
+  powerLine3D: {fileID: 811339061}
 --- !u!1 &1707937065
 GameObject:
   m_ObjectHideFlags: 0
@@ -2337,4 +2356,3 @@ SceneRoots:
   - {fileID: 744190908}
   - {fileID: 1444154554}
   - {fileID: 194315995}
-  - {fileID: 811339060}

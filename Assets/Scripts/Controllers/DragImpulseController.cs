@@ -50,24 +50,36 @@ namespace Assets.Scripts.Controllers
             currentPointerPos = pos;
 
             Vector2 deltaScreen = currentPointerPos - centerPointScreen;
+            if (deltaScreen.sqrMagnitude < 1f) return;
 
-            // направление в мире
+            // --- направление движения машины (обратное пальцу) ---
             Vector3 deltaWorld = new Vector3(deltaScreen.x, 0, deltaScreen.y);
-            deltaWorld = cam.transform.TransformDirection(deltaWorld);
+            deltaWorld = -cam.transform.TransformDirection(deltaWorld);
             deltaWorld.y = 0;
             deltaWorld.Normalize();
-            deltaWorld = -deltaWorld;
 
-            // Preview вращение машины
-            if (deltaScreen.sqrMagnitude > 10f)
-                carController.PreviewRotation(deltaWorld);
+            // --- Preview поворот машины ---
+            carController.PreviewRotation(deltaWorld);
 
-            // Draw натяжение через LineRenderer
-            float t = Mathf.InverseLerp(minDistance, maxDistance, deltaScreen.magnitude);
-            Vector3 lineEnd = car.position + deltaWorld * (t * maxDistance);
-            powerLine3D?.UpdateLine(car.position, -lineEnd);
+            // --- линия натяжения ---
+            // преобразуем позицию пальца в мировые координаты на плоскости машины
+            Plane plane = new Plane(Vector3.up, car.position);
+            Ray ray = cam.ScreenPointToRay(currentPointerPos);
+            if (plane.Raycast(ray, out float enter))
+            {
+                Vector3 pointerWorld = ray.GetPoint(enter);
+                Vector3 dirToPointer = pointerWorld - car.position;
+                float distance = dirToPointer.magnitude;
 
-            // Рикошетная траектория (можно опционально)
+                // ограничиваем по maxDistance
+                float lineLength = Mathf.Min(distance, maxDistance);
+
+                // линия тянется к пальцу
+                Vector3 lineEnd = car.position + dirToPointer.normalized * lineLength;
+                powerLine3D?.UpdateLine(car.position, lineEnd);
+            }
+
+            // --- рикошетная линия ---
             trajectoryRenderer?.Draw(car.position, deltaWorld);
         }
 

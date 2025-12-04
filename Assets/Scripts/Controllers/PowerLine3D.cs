@@ -32,6 +32,10 @@ namespace Assets.Scripts.Controllers.UI
         {
             Vector3 delta = end - start;
             float distance = delta.magnitude;
+
+            Debug.Log("UpdateLine - distance" + distance);
+            Debug.Log("UpdateLine - delta" + delta);
+
             if (distance > maxDistance)
                 delta = delta.normalized * maxDistance;
 
